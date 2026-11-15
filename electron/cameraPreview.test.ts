@@ -263,6 +263,41 @@ describe("floating camera preview lifecycle", () => {
 		expect(overlay.showInactive).toHaveBeenCalledTimes(2);
 	});
 
+	it("hides with the HUD (Hide recording bar) and comes back with it", () => {
+		const owner = Object.assign(new EventEmitter(), { send: vi.fn() });
+		const hud = new EventEmitter();
+		const overlay = Object.assign(new EventEmitter(), {
+			webContents: { send: vi.fn() },
+			showInactive: vi.fn(),
+			hide: vi.fn(),
+		});
+		const preview = new CameraPreviewController(
+			() => overlay as unknown as BrowserWindow,
+			vi.fn(),
+			() => hud as unknown as BrowserWindow,
+		);
+		const sender = owner as unknown as WebContents;
+		preview.configure(sender, true, true);
+		overlay.emit("ready-to-show");
+		expect(overlay.showInactive).toHaveBeenCalledOnce();
+
+		hud.emit("minimize");
+		expect(overlay.hide).toHaveBeenCalledOnce();
+		preview.configure(sender, true, true); // A HUD re-render must not bring it back early.
+		expect(overlay.showInactive).toHaveBeenCalledOnce();
+		hud.emit("restore");
+		expect(overlay.showInactive).toHaveBeenCalledTimes(2);
+
+		hud.emit("hide"); // Linux hides instead of minimizing.
+		hud.emit("show");
+		expect(overlay.showInactive).toHaveBeenCalledTimes(3);
+
+		preview.configure(sender, false, false);
+		hud.emit("minimize");
+		hud.emit("restore");
+		expect(overlay.showInactive).toHaveBeenCalledTimes(3); // Camera off stays off.
+	});
+
 	it("does not flash a blocked preview on ready or restore one the user hid", () => {
 		const { preview, sender, overlay, overlaySender } = setup();
 		preview.setCaptureAllowed(false);

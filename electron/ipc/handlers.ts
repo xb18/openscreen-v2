@@ -2550,6 +2550,7 @@ export function registerIpcHandlers(
 	const cameraPreview = new CameraPreviewController(
 		createCameraPreviewWindow,
 		resizeCameraPreviewWindow,
+		(owner) => BrowserWindow.fromWebContents(owner),
 	);
 	// destroy() bypasses the preview close-to-hide handler during application shutdown.
 	app.on("before-quit", () => cameraPreview.dispose());
